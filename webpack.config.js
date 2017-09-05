@@ -1,9 +1,11 @@
 const path = require('path');
 const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const HtmlWebpackIncludeAssetsPlugin = require('html-webpack-include-assets-plugin');
 const ExtractTextPlugin = require('extract-text-webpack-plugin');
 const BundleAnalyzerPlugin = require('webpack-bundle-analyzer').BundleAnalyzerPlugin;
 const noVisualization = process.env.NODE_ENV === 'production' 
+        || true
         || process.argv.slice(-1)[0] == '-p'
         || process.argv.some(arg => arg.indexOf('webpack-dev-server') >= 0)
         
@@ -16,14 +18,25 @@ const HtmlWebpackPluginConfig = new HtmlWebpackPlugin({
   inject: 'body'
 })
 
+const HtmlWebpackIncludeAssetsPluginConfig = new HtmlWebpackIncludeAssetsPlugin({
+  assets: [], 
+  append: false
+})
+
 const extractLess = new ExtractTextPlugin({
     filename: "[name].[contenthash].css",
-    disable: noVisualization
+    // disable: noVisualization
+});
+
+const extractSass = new ExtractTextPlugin({
+  filename: "[name].[contenthash].css",
+  // disable: noVisualization
 });
 
 const config = {
   entry: {
-    main: APP_DIR + '/index.js'
+    main: APP_DIR + '/index.js',
+    default_css: APP_DIR + '/sass/default.scss',
   },
   output: {
     path: BUILD_DIR,
@@ -65,13 +78,18 @@ const config = {
               fallback: "style-loader"
           })
       },
-
-      // {
-      //   test: /\.css$/,
-      //   loader: 'style-loader!css-loader?modules',
-      //   include: /flexboxgrid/
-      // },
-
+      {
+        test: /\.(sass|scss)$/,
+        use: extractSass.extract({
+              use: [{
+                  loader: "css-loader"
+              }, {
+                  loader: "sass-loader"
+              }],
+              // use style-loader in development
+              fallback: "style-loader"
+          })
+      },
       {
         test: /\.css$/,
         loader: 'style-loader!css-loader!postcss-loader',
@@ -98,6 +116,8 @@ const config = {
   plugins: [
     HtmlWebpackPluginConfig,
     extractLess,
+    extractSass,
+    HtmlWebpackIncludeAssetsPluginConfig,
     (!noVisualization ? 
     new BundleAnalyzerPlugin() : null),
 
